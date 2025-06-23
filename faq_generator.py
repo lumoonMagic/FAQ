@@ -3,7 +3,7 @@ from docx import Document
 from docx.shared import Inches
 import tempfile
 
-st.title("📄 Sally On-Demand Q&A — FAQ Generator")
+st.title("📄Q&A — FAQ Generator")
 
 # Form fields
 faq_title = st.text_input("❓ FAQ Title / Question", placeholder="Enter your FAQ title or question here")
