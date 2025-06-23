@@ -140,7 +140,7 @@ if st.button("📄 Generate FAQ Document"):
 if API_KEY and st.button("✅ Validate & Improve with Gemini"):
     with st.spinner("Contacting Gemini..."):
         try:
-            model = genai.GenerativeModel('gemini-1.5-pro')  # Gemini 2.5 not yet available in Python SDK; 1.5 is current
+            model = genai.GenerativeModel('gemini-2.0-flash')  # Gemini 2.5 not yet available in Python SDK; 1.5 is current
             prompt = f"""
 FAQ Question:
 {faq_title}
@@ -166,7 +166,7 @@ Format:
             st.text_area("🤖 Gemini Output", value=ai_output, height=400)
 
             doc_ai = Document()
-            doc_ai.add_heading('Sally On-Demand Q&A — FAQ (AI Enhanced)', level=1)
+            doc_ai.add_heading('Troubleshooting Q&A — FAQ (AI Enhanced)', level=1)
             doc_ai.add_heading('❓ FAQ Title / Question', level=2)
             doc_ai.add_paragraph(faq_title)
             doc_ai.add_heading('📌 Summary', level=2)
