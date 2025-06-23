@@ -2,8 +2,10 @@ import streamlit as st
 from docx import Document
 from docx.shared import Inches
 import tempfile
+import json
 import google.generativeai as genai
 
+# Streamlit app config
 st.set_page_config(page_title="FAQ Generator", layout="wide")
 st.title("📄 Dynamic FAQ Generator with Gemini + Assignment")
 
@@ -14,16 +16,26 @@ if API_KEY:
 else:
     st.warning("⚠️ No GEMINI_API_KEY found in Streamlit secrets. Validation won't work.")
 
-# Initialize assignees + FAQ list + steps
+# Load FAQ list from file
+def load_faq_list():
+    try:
+        with open("faq_list.json", "r") as f:
+            return json.load(f)
+    except Exception as e:
+        st.error(f"Error loading FAQ list: {e}")
+        return []
+
+# Save FAQ list to file
+def save_faq_list(faq_list):
+    with open("faq_list.json", "w") as f:
+        json.dump(faq_list, f, indent=2)
+
+# Initialize session state
 if 'assignees' not in st.session_state:
-    st.session_state['assignees'] = ["Alice", "Bob", "Charlie"]
+    st.session_state['assignees'] = ["Amit", "Alice", "Bob"]
 
 if 'faq_list' not in st.session_state:
-    st.session_state['faq_list'] = [
-        {"question": "How do I check inventory levels?", "assignee": "Alice"},
-        {"question": "How to trigger a resupply request?", "assignee": "Bob"},
-        {"question": "What is the process for closing a site?", "assignee": "Alice"}
-    ]
+    st.session_state['faq_list'] = load_faq_list()
 
 if 'steps' not in st.session_state:
     st.session_state['steps'] = []
@@ -32,7 +44,7 @@ if 'steps' not in st.session_state:
 st.subheader("👤 Select User")
 selected_user = st.selectbox("Select the user working on FAQs", st.session_state['assignees'])
 
-# Filter FAQs for selected user
+# Filter FAQs
 user_faqs = [faq["question"] for faq in st.session_state['faq_list'] if faq["assignee"] == selected_user]
 
 # Select or add FAQ
@@ -51,6 +63,7 @@ with col2:
     if st.button("➕ Add"):
         if new_faq and not any(faq["question"] == new_faq for faq in st.session_state['faq_list']):
             st.session_state['faq_list'].append({"question": new_faq, "assignee": new_assignee})
+            save_faq_list(st.session_state['faq_list'])
             st.success(f"Added: {new_faq} (Assigned to {new_assignee})")
         elif new_faq:
             st.warning("This question is already in the list.")
@@ -58,7 +71,7 @@ with col2:
 faq_title = new_faq if new_faq else selected_faq
 summary = st.text_area("📌 Summary")
 
-# Add step
+# Dynamic steps
 if st.button("➕ Add Step"):
     st.session_state['steps'].append({
         "text": "",
@@ -66,7 +79,6 @@ if st.button("➕ Add Step"):
         "query": ""
     })
 
-# Step inputs
 for idx, step in enumerate(st.session_state['steps']):
     st.markdown(f"### Step {idx + 1}")
     step["text"] = st.text_area(f"Step {idx + 1} Description", value=step["text"], key=f"text_{idx}")
@@ -78,7 +90,7 @@ for idx, step in enumerate(st.session_state['steps']):
 
 notes = st.text_area("📌 Additional Notes")
 
-# Generate base doc
+# Generate user-entered DOCX
 if st.button("📄 Generate FAQ Document"):
     doc = Document()
     doc.add_heading("Sally On-Demand Q&A — FAQ", level=1)
@@ -110,7 +122,7 @@ if st.button("📄 Generate FAQ Document"):
                        file_name='FAQ_Generated.docx',
                        mime='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
 
-# Validate with Gemini
+# Gemini validation + AI doc
 if st.button("🤖 Validate with Gemini"):
     if not API_KEY:
         st.error("❌ No GEMINI_API_KEY configured — cannot validate.")
@@ -133,7 +145,6 @@ Please:
 - Suggest alternative or missing steps to improve clarity.
 - Return a rephrased, cleaner version of the steps.
 """
-
         with st.spinner("Validating and enhancing steps with Gemini..."):
             model = genai.GenerativeModel('gemini-2.0-flash')
             response = model.generate_content(prompt)
@@ -143,7 +154,7 @@ Please:
         st.markdown(enhanced_text)
 
         doc2 = Document()
-        doc2.add_heading("Troubleshoot Guide Q&A — FAQ (AI Enhanced)", level=1)
+        doc2.add_heading("Troubleshooting Guide — FAQ (AI Enhanced)", level=1)
         doc2.add_heading("👤 Assignee", level=2)
         doc2.add_paragraph(selected_user)
         doc2.add_heading("❓ FAQ Title / Question", level=2)
