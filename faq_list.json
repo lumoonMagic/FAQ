@@ -2,7 +2,7 @@
   "What are the key database tables involved in the patching process?",
   "How can I check OpenSearch logs ?",
   "What should I do if cloudx portal is not loading or getting white screen?",
-  "TAO is unable to update the patching schedule." What are the common reasons for this failure, and how can we troubleshoot this specific issue?",
+  "TAO is unable to update the patching schedule. What are the common reasons for this failure, and how can we troubleshoot this specific issue?",
   "What are the common queries to use to troubleshoot patching issues?",
   "What steps should be taken when OS patching for a server is not reflected in the patching portal?",
   "What steps should I take to analyze failures in Oracle Database patching automation?",
