@@ -7,17 +7,23 @@ import os
 
 FAQ_FILE = "faq_list.json"
 
-# Helper: load FAQ list
+# Helper: load FAQ list safely
 def load_faq_list():
     if os.path.exists(FAQ_FILE):
-        with open(FAQ_FILE) as f:
-            return json.load(f)
-    else:
-        return [
-            "What are the key database tables involved in the patching process?", 
-            "How can I check OpenSearch logs ?",
-            "What should I do if cloudx portal is not loading or getting white screen?"
-        ]
+        try:
+            with open(FAQ_FILE) as f:
+                data = json.load(f)
+                if isinstance(data, list):
+                    return data
+                else:
+                    st.warning("FAQ file content invalid, using default list.")
+        except json.JSONDecodeError:
+            st.warning("FAQ file is empty or malformed. Using default list.")
+    return [
+        "What are the key database tables involved in the patching process?", 
+        "How can I check OpenSearch logs ?",
+        "What should I do if cloudx portal is not loading or getting white screen?"
+    ]
 
 # Helper: save FAQ list
 def save_faq_list(faq_list):
@@ -56,7 +62,7 @@ with col2:
             save_faq_list(st.session_state['faq_list'])
             st.success(f"Removed: {selected_faq}")
 
-# Final FAQ title
+# Set FAQ title
 faq_title = new_faq if new_faq and new_faq in st.session_state['faq_list'] else selected_faq
 
 summary = st.text_area("📌 Summary")
@@ -64,7 +70,7 @@ summary = st.text_area("📌 Summary")
 num_steps = st.number_input("How many steps?", min_value=1, step=1)
 
 # Generate default steps
-if 'steps' not in st.session_state:
+if 'steps' not in st.session_state or st.button("🔄 Regenerate Steps"):
     default_steps = ""
     for i in range(1, int(num_steps)+1):
         if i % 2 == 0:
@@ -73,8 +79,10 @@ if 'steps' not in st.session_state:
             default_steps += f"Step {i}: [INSERT_QUERY]\n"
     st.session_state['steps'] = default_steps
 
-st.session_state['steps'] = st.text_area("📝 Step-by-Step Instructions (edit if needed)",
-                                         value=st.session_state['steps'], height=200)
+st.session_state['steps'] = st.text_area(
+    "📝 Step-by-Step Instructions (edit if needed)",
+    value=st.session_state['steps'], height=200
+)
 
 if st.button("👉 Prepare Uploads / Inputs"):
     screenshot_steps = []
@@ -82,16 +90,16 @@ if st.button("👉 Prepare Uploads / Inputs"):
 
     for i, line in enumerate(st.session_state['steps'].splitlines()):
         if "[INSERT_SCREENSHOT]" in line:
-            screenshot_steps.append(i+1)
+            screenshot_steps.append(i + 1)
         if "[INSERT_QUERY]" in line:
-            query_steps.append(i+1)
+            query_steps.append(i + 1)
 
     st.session_state['screenshot_steps'] = screenshot_steps
     st.session_state['query_steps'] = query_steps
     st.session_state['screenshot_inputs'] = {}
     st.session_state['query_inputs'] = {}
 
-# Dynamic input generation
+# Dynamic inputs
 if 'screenshot_steps' in st.session_state:
     for s in st.session_state['screenshot_steps']:
         st.session_state['screenshot_inputs'][s] = st.file_uploader(
@@ -122,6 +130,7 @@ if st.button("📄 Generate FAQ Document"):
         if clean_line:
             doc.add_paragraph(clean_line)
 
+        # Insert screenshot if provided
         if step_num in st.session_state['screenshot_inputs']:
             uploaded_file = st.session_state['screenshot_inputs'][step_num]
             if uploaded_file is not None:
@@ -130,6 +139,7 @@ if st.button("📄 Generate FAQ Document"):
                     tmpfile.flush()
                     doc.add_picture(tmpfile.name, width=Inches(4))
 
+        # Insert query if provided
         if step_num in st.session_state['query_inputs']:
             query_text = st.session_state['query_inputs'][step_num]
             if query_text:
