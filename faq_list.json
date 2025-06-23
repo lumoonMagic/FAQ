@@ -1,26 +1,26 @@
 [
-  What are the key database tables involved in the patching process?
-  How can I check OpenSearch logs ?
-  What should I do if cloudx portal is not loading or getting white screen?
-  "TAO is unable to update the patching schedule." What are the common reasons for this failure, and how can we troubleshoot this specific issue?
-  What are the common queries to use to troubleshoot patching issues?
-  What steps should be taken when OS patching for a server is not reflected in the patching portal?
-  What steps should I take to analyze failures in Oracle Database patching automation?
-  What does the "Download script failed error" indicate, and how can I troubleshoot it?
-  What do "MI Data" errors in the ZeroTouch Portal signify, and how can I begin to troubleshoot them?
-  Why am I unable to locate the change number within the MS Portal?
-  What steps should be taken when a Change Request (CR) remains in a "Scheduled" state?
-  What steps should I take to analyze why a Change Request (CR) was not created for patching?
-  The SAP team initiated patching, but the Change Request (CR) is not getting initiated. What are the common reasons for this, and how can we troubleshoot it?
-  What steps should I take to investigate why a Change Request (CR) moved back to the 'Assess' state from the 'Schedule' state?
-  What steps should I take to investigate why a Change Request (CR) was not closed, even though 300 related tasks (ctasks) were completed at the server level?
-  What steps should I take to investigate why a Change Request (CR) did not move to the 'Schedule' state?
-  What steps should I take to investigate why did the Change Request (CR) creation job fail to run, leading to manual CR creation?
-  What steps should I take to address issues with the scheduled time displayed in the patching portal?
-  How can I troubleshoot issues preventing the successful scheduling of a patch?
-  "TAO is unable to update the patching schedule." What are the common reasons for this failure, and how can we troubleshoot this specific issue?
-  How to Investigate a Cancelled Automated Change Task (CTASK) for a Change Request (CR)?
-  Why am I encountering an "undefined error" when calling getAccountBudget (AWS API), and how can I resolve it?
-  What does a "401 error" indicate when requesting getAccountEvents (AWS API), and how can I resolve it?
-  When attempting to edit individual or bulk server patching schedules, I receive a message. Is this message indicative of an API timeout, and how can I resolve it?
+  "What are the key database tables involved in the patching process?",
+  "How can I check OpenSearch logs ?",
+  "What should I do if cloudx portal is not loading or getting white screen?",
+  ""TAO is unable to update the patching schedule." What are the common reasons for this failure, and how can we troubleshoot this specific issue?",
+  "What are the common queries to use to troubleshoot patching issues?",
+  "What steps should be taken when OS patching for a server is not reflected in the patching portal?",
+  "What steps should I take to analyze failures in Oracle Database patching automation?",
+  "What does the "Download script failed error" indicate, and how can I troubleshoot it?",
+  "What do "MI Data" errors in the ZeroTouch Portal signify, and how can I begin to troubleshoot them?",
+  "Why am I unable to locate the change number within the MS Portal?",
+  "What steps should be taken when a Change Request (CR) remains in a "Scheduled" state?",
+  "What steps should I take to analyze why a Change Request (CR) was not created for patching?",
+  "The SAP team initiated patching, but the Change Request (CR) is not getting initiated. What are the common reasons for this, and how can we troubleshoot it?",
+  "What steps should I take to investigate why a Change Request (CR) moved back to the 'Assess' state from the 'Schedule' state?",
+  "What steps should I take to investigate why a Change Request (CR) was not closed, even though 300 related tasks (ctasks) were completed at the server level?",
+  "What steps should I take to investigate why a Change Request (CR) did not move to the 'Schedule' state?",
+  "What steps should I take to investigate why did the Change Request (CR) creation job fail to run, leading to manual CR creation?",
+  "What steps should I take to address issues with the scheduled time displayed in the patching portal?",
+  "How can I troubleshoot issues preventing the successful scheduling of a patch?",
+  ""TAO is unable to update the patching schedule." What are the common reasons for this failure, and how can we troubleshoot this specific issue?",
+  "How to Investigate a Cancelled Automated Change Task (CTASK) for a Change Request (CR)?",
+  "Why am I encountering an "undefined error" when calling getAccountBudget (AWS API), and how can I resolve it?",
+  "What does a "401 error" indicate when requesting getAccountEvents (AWS API), and how can I resolve it?",
+  "When attempting to edit individual or bulk server patching schedules, I receive a message. Is this message indicative of an API timeout, and how can I resolve it?",
 ]
