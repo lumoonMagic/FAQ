@@ -5,7 +5,32 @@ import tempfile
 
 st.title("📄 Troubleshooting — FAQ Generator")
 
-faq_title = st.text_input("❓ FAQ Title / Question")
+# Initialize FAQ list in session state
+if 'faq_list' not in st.session_state:
+    st.session_state['faq_list'] = [
+        "How do I check inventory levels?", 
+        "How to trigger a resupply request?",
+        "What is the process for closing a site?"
+    ]
+
+st.subheader("❓ Select or Add FAQ Question")
+
+# Dropdown to select
+selected_faq = st.selectbox("Choose FAQ question", st.session_state['faq_list'])
+
+# Input to add new
+new_faq = st.text_input("Add a new FAQ question (optional)")
+
+if st.button("➕ Add to FAQ list"):
+    if new_faq and new_faq not in st.session_state['faq_list']:
+        st.session_state['faq_list'].append(new_faq)
+        st.success(f"Added: {new_faq}")
+    elif new_faq:
+        st.warning("This question is already in the list.")
+
+# Set FAQ title for doc generation
+faq_title = new_faq if new_faq and new_faq in st.session_state['faq_list'] else selected_faq
+
 summary = st.text_area("📌 Summary")
 
 # 1️⃣ Number of steps
