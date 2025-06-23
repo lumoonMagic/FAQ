@@ -9,7 +9,7 @@
   "What does the 'Download script failed error' indicate, and how can I troubleshoot it?",
   "What do 'MI Data' errors in the ZeroTouch Portal signify, and how can I begin to troubleshoot them?",
   "Why am I unable to locate the change number within the MS Portal?",
-  "What steps should be taken when a Change Request (CR) remains in a "Scheduled" state?",
+  "What steps should be taken when a Change Request (CR) remains in a 'Scheduled' state?",
   "What steps should I take to analyze why a Change Request (CR) was not created for patching?",
   "The SAP team initiated patching, but the Change Request (CR) is not getting initiated. What are the common reasons for this, and how can we troubleshoot it?",
   "What steps should I take to investigate why a Change Request (CR) moved back to the 'Assess' state from the 'Schedule' state?",
