@@ -14,9 +14,9 @@ def load_faq_list():
             return json.load(f)
     else:
         return [
-            "How do I check inventory levels?", 
-            "How to trigger a resupply request?",
-            "What is the process for closing a site?"
+            "What are the key database tables involved in the patching process?", 
+            "How can I check OpenSearch logs ?",
+            "What should I do if cloudx portal is not loading or getting white screen?"
         ]
 
 # Helper: save FAQ list
