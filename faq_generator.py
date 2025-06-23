@@ -8,9 +8,9 @@ st.title("📄 Troubleshooting — FAQ Generator")
 # Initialize FAQ list in session state
 if 'faq_list' not in st.session_state:
     st.session_state['faq_list'] = [
-        "How do I check inventory levels?", 
-        "How to trigger a resupply request?",
-        "What is the process for closing a site?"
+        "What are the key database tables involved in the patching process?", 
+        "How can I check OpenSearch logs ?",
+        "What should I do if cloudx portal is not loading or getting white screen?"
     ]
 
 st.subheader("❓ Select or Add FAQ Question")
