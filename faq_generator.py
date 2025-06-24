@@ -3,81 +3,62 @@ from docx import Document
 from docx.shared import Inches
 import tempfile
 import json
+from supabase import create_client, Client
 import google.generativeai as genai
 
-# Configure Streamlit page
-st.set_page_config(page_title="FAQ Generator", layout="wide")
-st.title("📄 Dynamic FAQ Generator with Gemini + Assignee Management")
+# --- Config ---
+SUPABASE_URL = st.secrets["SUPABASE_URL"]
+SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
+GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
 
-# Setup Gemini
-API_KEY = st.secrets.get("GEMINI_API_KEY")
-if API_KEY:
-    genai.configure(api_key=API_KEY)
-else:
-    st.warning("⚠️ No GEMINI_API_KEY found in Streamlit secrets. Gemini validation won't work.")
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+genai.configure(api_key=GEMINI_API_KEY)
 
-# Helper: Load FAQ list
-def load_faq_list():
-    try:
-        with open("faq_list.json", "r") as f:
-            return json.load(f)
-    except Exception as e:
-        st.error(f"Error loading FAQ list: {e}")
-        return []
+TABLE_NAME = "faqs"
 
-# Helper: Save FAQ list
-def save_faq_list(faq_list):
-    with open("faq_list.json", "w") as f:
-        json.dump(faq_list, f, indent=2)
+# --- Load / Save Supabase ---
+def load_faqs():
+    response = supabase.table(TABLE_NAME).select("*").execute()
+    if response.data:
+        return response.data[0]["data"]["faqs"]
+    return []
 
-# Initialize session state
+def save_faqs(faq_list):
+    supabase.table(TABLE_NAME).update({
+        "data": json.dumps({"faqs": faq_list})
+    }).eq("id", 1).execute()
+
+# --- Initialize ---
 if 'faq_list' not in st.session_state:
-    st.session_state['faq_list'] = load_faq_list()
-
-if 'assignees' not in st.session_state:
-    assignees = list(set(faq["assignee"] for faq in st.session_state['faq_list']))
-    st.session_state['assignees'] = assignees if assignees else ["Unassigned"]
-
+    st.session_state['faq_list'] = load_faqs()
 if 'steps' not in st.session_state:
     st.session_state['steps'] = []
 
-# User select
-st.subheader("👤 Select Assignee")
-selected_user = st.selectbox("Choose user", st.session_state['assignees'])
+# --- Assignee + FAQ selection ---
+assignees = list(set(f['assignee'] for f in st.session_state['faq_list']))
+selected_assignee = st.selectbox("👤 Select Assignee", options=assignees)
 
-# Filter FAQ
-user_faqs = [faq["question"] for faq in st.session_state['faq_list'] if faq["assignee"] == selected_user]
+filtered_faqs = [f["question"] for f in st.session_state['faq_list'] if f["assignee"] == selected_assignee]
+selected_faq = st.selectbox("❓ Select FAQ", filtered_faqs)
 
-# FAQ selection + add
-st.subheader("❓ Select or Add FAQ")
-col1, col2 = st.columns([2, 1])
-with col1:
-    if user_faqs:
-        selected_faq = st.selectbox("Select FAQ", user_faqs)
+# --- Add FAQ ---
+st.subheader("➕ Add New FAQ")
+new_q = st.text_input("FAQ Question")
+new_a = st.text_input("Assign to")
+
+if st.button("Add FAQ"):
+    if new_q and new_a:
+        new_faq = {"question": new_q, "assignee": new_a}
+        st.session_state['faq_list'].append(new_faq)
+        save_faqs(st.session_state['faq_list'])
+        st.success(f"Added: {new_q}")
+        st.experimental_rerun()
     else:
-        selected_faq = None
-        st.info("No FAQs assigned to this user yet.")
+        st.warning("Provide both a question and assignee.")
 
-with col2:
-    new_faq = st.text_input("Add new FAQ question")
-    new_assignee = st.selectbox("Assign to", st.session_state['assignees'] + ["New Assignee"], key="assign_select")
-    if new_assignee == "New Assignee":
-        new_assignee = st.text_input("Enter new assignee name")
+# --- Steps ---
+st.subheader("📝 Step-by-Step Instructions")
 
-    if st.button("➕ Add FAQ"):
-        if new_faq and not any(faq["question"] == new_faq for faq in st.session_state['faq_list']):
-            st.session_state['faq_list'].append({"question": new_faq, "assignee": new_assignee})
-            save_faq_list(st.session_state['faq_list'])
-            if new_assignee not in st.session_state['assignees']:
-                st.session_state['assignees'].append(new_assignee)
-            st.success(f"Added: {new_faq} (Assigned to {new_assignee})")
-        elif new_faq:
-            st.warning("This FAQ already exists.")
-
-faq_title = new_faq if new_faq else selected_faq
-summary = st.text_area("📌 Summary")
-
-# Dynamic step handling
 if st.button("➕ Add Step"):
     st.session_state['steps'].append({
         "text": "",
@@ -86,95 +67,62 @@ if st.button("➕ Add Step"):
     })
 
 for idx, step in enumerate(st.session_state['steps']):
-    st.markdown(f"### Step {idx + 1}")
-    step["text"] = st.text_area(f"Description", value=step["text"], key=f"text_{idx}")
-    step["screenshot"] = st.file_uploader(f"Screenshot (optional)", type=['png', 'jpg', 'jpeg'], key=f"ss_{idx}")
-    step["query"] = st.text_area(f"Query Template (optional)", value=step["query"], key=f"query_{idx}")
-    if st.button(f"❌ Remove Step {idx + 1}", key=f"remove_{idx}"):
-        st.session_state['steps'].pop(idx)
-        st.experimental_rerun()
+    st.session_state['steps'][idx]['text'] = st.text_input(f"Step {idx+1} description", value=step['text'], key=f"desc_{idx}")
+    st.session_state['steps'][idx]['screenshot'] = st.file_uploader(f"Screenshot for Step {idx+1}", type=['png', 'jpg'], key=f"ss_{idx}")
+    st.session_state['steps'][idx]['query'] = st.text_area(f"Query for Step {idx+1}", value=step['query'], key=f"query_{idx}")
 
 notes = st.text_area("📌 Additional Notes")
 
-# Generate user document
+# --- Validate with Gemini ---
+def validate_with_gemini(faq_title, steps_text):
+    model = genai.GenerativeModel("gemini-2.0-flash")
+    prompt = f"""The FAQ question is: "{faq_title}". 
+    Here are the step-by-step instructions: {steps_text}. 
+    Please validate if these steps address the FAQ question and suggest improvements or missing steps if any."""
+    response = model.generate_content(prompt)
+    return response.text.strip()
+
+if st.button("✅ Validate with Gemini"):
+    steps_text = "\n".join([f"Step {i+1}: {s['text']}" for i, s in enumerate(st.session_state['steps'])])
+    gemini_feedback = validate_with_gemini(selected_faq, steps_text)
+    st.subheader("🧠 Gemini Feedback")
+    st.write(gemini_feedback)
+    st.session_state['gemini_feedback'] = gemini_feedback
+
+# --- Generate DOCX ---
 if st.button("📄 Generate FAQ Document"):
     doc = Document()
-    doc.add_heading("Sally On-Demand Q&A — FAQ", level=1)
-    doc.add_heading("👤 Assignee", level=2)
-    doc.add_paragraph(selected_user)
-    doc.add_heading("❓ FAQ Title / Question", level=2)
-    doc.add_paragraph(faq_title)
-    doc.add_heading("📌 Summary", level=2)
-    doc.add_paragraph(summary)
-    doc.add_heading("📝 Step-by-Step Instructions", level=2)
+    doc.add_heading('Sally On-Demand Q&A — FAQ', level=1)
+    doc.add_heading('❓ FAQ Title / Question', level=2)
+    doc.add_paragraph(selected_faq)
+    doc.add_heading('👤 Assignee', level=2)
+    doc.add_paragraph(selected_assignee)
+    doc.add_heading('📝 Step-by-Step Instructions', level=2)
 
     for idx, step in enumerate(st.session_state['steps']):
-        doc.add_paragraph(f"Step {idx + 1}: {step['text']}")
-        if step["query"]:
+        doc.add_paragraph(f"Step {idx+1}: {step['text']}")
+        if step['query']:
             doc.add_paragraph(f"Query Template: {step['query']}")
-        if step["screenshot"]:
+        if step['screenshot']:
             with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
-                tmpfile.write(step["screenshot"].read())
+                tmpfile.write(step['screenshot'].read())
                 tmpfile.flush()
                 doc.add_picture(tmpfile.name, width=Inches(4))
 
-    doc.add_heading("📌 Additional Notes", level=2)
+    doc.add_heading('📌 Additional Notes', level=2)
     doc.add_paragraph(notes)
+
+    if 'gemini_feedback' in st.session_state:
+        doc.add_heading('🧠 Gemini Feedback', level=2)
+        doc.add_paragraph(st.session_state['gemini_feedback'])
 
     tmp_out = tempfile.NamedTemporaryFile(delete=False, suffix='.docx')
     doc.save(tmp_out.name)
-    st.success("✅ FAQ document generated!")
-    st.download_button("📥 Download FAQ Document", data=open(tmp_out.name, 'rb').read(),
-                       file_name='FAQ_Generated.docx',
-                       mime='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
 
-# Validate + generate AI doc
-if st.button("🤖 Validate with Gemini"):
-    if not API_KEY:
-        st.error("❌ No GEMINI_API_KEY configured.")
-    else:
-        steps_text = "\n".join([f"Step {i+1}: {s['text']}" for i, s in enumerate(st.session_state['steps'])])
-        prompt = f"""
-You are an AI assistant helping create clear and complete troubleshooting FAQs.
-
-FAQ Question: {faq_title}
-
-Summary: {summary}
-
-Steps:
-{steps_text}
-
-Additional Notes: {notes}
-
-Please:
-- Check if the steps address the FAQ question adequately.
-- Suggest alternative or missing steps to improve clarity.
-- Return a rephrased, cleaner version of the steps.
-"""
-        with st.spinner("Validating with Gemini..."):
-            model = genai.GenerativeModel('gemini-2.5-flash')
-            response = model.generate_content(prompt)
-            enhanced_text = response.text
-
-        st.subheader("✅ Gemini Enhanced Steps")
-        st.markdown(enhanced_text)
-
-        doc2 = Document()
-        doc2.add_heading("Troubleshooting FAQ (AI Enhanced)", level=1)
-        doc2.add_heading("👤 Assignee", level=2)
-        doc2.add_paragraph(selected_user)
-        doc2.add_heading("❓ FAQ Title / Question", level=2)
-        doc2.add_paragraph(faq_title)
-        doc2.add_heading("📌 Summary", level=2)
-        doc2.add_paragraph(summary)
-        doc2.add_heading("📝 Step-by-Step Instructions (AI Enhanced)", level=2)
-        for line in enhanced_text.splitlines():
-            doc2.add_paragraph(line)
-        doc2.add_heading("📌 Additional Notes", level=2)
-        doc2.add_paragraph(notes)
-
-        tmp_out2 = tempfile.NamedTemporaryFile(delete=False, suffix='.docx')
-        doc2.save(tmp_out2.name)
-        st.download_button("📥 Download AI Enhanced Document", data=open(tmp_out2.name, 'rb').read(),
-                           file_name='FAQ_Generated_AI_Enhanced.docx',
-                           mime='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+    st.success("✅ Document generated!")
+    st.download_button(
+        "📥 Download FAQ Document",
+        data=open(tmp_out.name, 'rb').read(),
+        file_name='FAQ_Generated.docx',
+        mime='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    )
