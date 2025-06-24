@@ -7,7 +7,7 @@ import os
 import google.generativeai as genai
 from supabase import create_client
 
-# --- CONFIGURE ---
+# --- CONFIG ---
 SUPABASE_URL = st.secrets["SUPABASE_URL"]
 SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
@@ -20,10 +20,8 @@ def load_faqs():
     response = supabase.table("faqs").select("*").limit(1).execute()
     if response.data:
         row = response.data[0]
-        data_field = row["data"]
-        return data_field["faqs"], row["id"]
+        return row["data"]["faqs"], row["id"]
     else:
-        # Create initial empty row
         insert_res = supabase.table("faqs").insert({"data": {"faqs": []}}).execute()
         new_id = insert_res.data[0]["id"]
         return [], new_id
@@ -55,12 +53,15 @@ if 'faq_list' not in st.session_state or 'faq_row_id' not in st.session_state:
 # --- UI ---
 st.title("📄 Troubleshooting — FAQ Generator")
 
-assignees = list(set([faq["assignee"] for faq in st.session_state['faq_list']]))
+assignees = list(set([faq["assignee"] for faq in st.session_state['faq_list']])) or ["No Assignee"]
 selected_assignee = st.selectbox("👤 Select Assignee", assignees)
 
-filtered_faqs = [faq["question"] for faq in st.session_state['faq_list'] if faq["assignee"] == selected_assignee]
-selected_faq = st.selectbox("❓ Select FAQ", filtered_faqs)
+filtered_faqs = [faq for faq in st.session_state['faq_list'] if faq["assignee"] == selected_assignee]
 
+faq_options = [faq["question"] for faq in filtered_faqs] or ["No FAQ"]
+selected_faq = st.selectbox("❓ Select FAQ", faq_options)
+
+# --- ADD FAQ ---
 with st.form("add_faq_form"):
     new_q = st.text_input("➕ New FAQ Question")
     new_a = st.text_input("Assign to")
@@ -72,12 +73,21 @@ with st.form("add_faq_form"):
             save_faqs(st.session_state['faq_list'], st.session_state['faq_row_id'])
             st.success(f"Added: {new_q}")
         else:
-            st.warning("Please provide both question and assignee.")
+            st.warning("Please provide both a question and assignee.")
 
+# --- DELETE FAQ ---
+if selected_faq != "No FAQ":
+    if st.button(f"🗑️ Delete '{selected_faq}'"):
+        updated_list = [faq for faq in st.session_state['faq_list'] if faq["question"] != selected_faq]
+        st.session_state['faq_list'] = updated_list
+        save_faqs(updated_list, st.session_state['faq_row_id'])
+        st.success(f"Deleted: {selected_faq}")
+
+# --- BUILD FAQ CONTENT ---
 st.subheader(f"📌 Generating FAQ for: {selected_faq}")
 summary = st.text_area("Summary")
 
-# Dynamic steps
+# Steps
 if 'steps' not in st.session_state:
     st.session_state['steps'] = []
 
@@ -91,8 +101,8 @@ for i, step in enumerate(st.session_state['steps']):
 
 notes = st.text_area("Additional Notes")
 
-# Generate document buttons
-if st.button("Generate FAQ Document"):
+# --- GENERATE DOC ---
+if st.button("📄 Generate FAQ Document"):
     doc = Document()
     doc.add_heading('FAQ Document', level=1)
     doc.add_heading('Question', level=2)
@@ -120,7 +130,8 @@ if st.button("Generate FAQ Document"):
                        file_name='FAQ_Generated.docx',
                        mime='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
 
-if st.button("Validate Steps (Gemini)"):
+# --- GEMINI VALIDATION ---
+if st.button("🤖 Validate Steps (Gemini)"):
     steps_text = "\n".join([f"Step {idx+1}: {s['text']}" for idx, s in enumerate(st.session_state['steps'])])
     with st.spinner("Validating with Gemini..."):
         validation = validate_steps_with_gemini(selected_faq, steps_text)
