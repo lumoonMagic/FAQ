@@ -26,7 +26,7 @@ def load_faqs():
 def save_faqs(faq_list):
     supabase.table(TABLE_NAME).update({
         "data": json.dumps({"faqs": faq_list})
-    }).eq("id", 1).execute()
+    }).eq("id", 71302e5a-c955-435b-bec3-36ec96c56a7d).execute()
 
 # --- Initialize ---
 if 'faq_list' not in st.session_state:
