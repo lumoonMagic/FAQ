@@ -20,11 +20,14 @@ TABLE_NAME = "faqs"
 def load_faqs():
     response = supabase.table(TABLE_NAME).select("*").limit(1).execute()
     if response.data:
-        return json.loads(response.data[0]["data"])["faqs"], response.data[0]["id"]
+        data_field = response.data[0]["data"]
+        if isinstance(data_field, str):
+            data_field = json.loads(data_field)
+        return data_field.get("faqs", []), response.data[0]["id"]
     return [], None
 
 def save_faqs(faq_list, row_id=None):
-    data_payload = {"data": json.dumps({"faqs": faq_list})}
+    data_payload = {"data": {"faqs": faq_list}}
     if row_id:
         supabase.table(TABLE_NAME).update(data_payload).eq("id", row_id).execute()
     else:
@@ -39,11 +42,11 @@ if 'steps' not in st.session_state:
     st.session_state['steps'] = []
 
 # --- ASSIGNEE + FAQ SELECTION ---
-assignees = list(set(f['assignee'] for f in st.session_state['faq_list']))
+assignees = list(set(f['assignee'] for f in st.session_state['faq_list'])) or ["Unassigned"]
 selected_assignee = st.selectbox("👤 Select Assignee", options=assignees)
 
 filtered_faqs = [f["question"] for f in st.session_state['faq_list'] if f["assignee"] == selected_assignee]
-selected_faq = st.selectbox("❓ Select FAQ", filtered_faqs)
+selected_faq = st.selectbox("❓ Select FAQ", filtered_faqs) if filtered_faqs else ""
 
 # --- ADD FAQ ---
 st.subheader("➕ Add New FAQ")
@@ -88,10 +91,13 @@ Please validate if these steps address the FAQ question and suggest improvements
 
 if st.button("✅ Validate with Gemini"):
     steps_text = "\n".join([f"Step {i+1}: {s['text']}" for i, s in enumerate(st.session_state['steps'])])
-    gemini_feedback = validate_with_gemini(selected_faq, steps_text)
-    st.subheader("🧠 Gemini Feedback")
-    st.write(gemini_feedback)
-    st.session_state['gemini_feedback'] = gemini_feedback
+    if selected_faq:
+        gemini_feedback = validate_with_gemini(selected_faq, steps_text)
+        st.subheader("🧠 Gemini Feedback")
+        st.write(gemini_feedback)
+        st.session_state['gemini_feedback'] = gemini_feedback
+    else:
+        st.warning("Please select an FAQ to validate against.")
 
 # --- GENERATE DOCX ---
 if st.button("📄 Generate FAQ Document"):
