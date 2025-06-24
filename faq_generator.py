@@ -75,7 +75,7 @@ notes = st.text_area("📌 Additional Notes")
 
 # --- Validate with Gemini ---
 def validate_with_gemini(faq_title, steps_text):
-    model = genai.GenerativeModel("gemini-2.0-flash")
+    model = genai.GenerativeModel("gemini-2.5-flash")
     prompt = f"""The FAQ question is: "{faq_title}". 
     Here are the step-by-step instructions: {steps_text}. 
     Please validate if these steps address the FAQ question and suggest improvements or missing steps if any."""
@@ -92,7 +92,7 @@ if st.button("✅ Validate with Gemini"):
 # --- Generate DOCX ---
 if st.button("📄 Generate FAQ Document"):
     doc = Document()
-    doc.add_heading('Sally On-Demand Q&A — FAQ', level=1)
+    doc.add_heading('Troubleshooting Guide — FAQ', level=1)
     doc.add_heading('❓ FAQ Title / Question', level=2)
     doc.add_paragraph(selected_faq)
     doc.add_heading('👤 Assignee', level=2)
