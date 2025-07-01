@@ -112,6 +112,8 @@ if st.button("📄 Generate FAQ Document"):
     doc.add_paragraph("[Steps]")
 
     zip_buffer = io.BytesIO()
+    screenshot_found = False
+
     with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
         for idx, step in enumerate(st.session_state["steps"]):
             doc.add_paragraph(f"[Step {idx+1}]")
@@ -122,6 +124,7 @@ if st.button("📄 Generate FAQ Document"):
                 doc.add_paragraph(step["query"])
 
             if step["screenshot"]:
+                screenshot_found = True
                 with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
                     tmpfile.write(step["screenshot"].read())
                     tmpfile.flush()
@@ -136,15 +139,17 @@ if st.button("📄 Generate FAQ Document"):
 
     tmp_out = tempfile.NamedTemporaryFile(delete=False, suffix=".docx")
     doc.save(tmp_out.name)
-    st.download_button("Download FAQ Document", data=open(tmp_out.name, 'rb').read(),
-                       file_name='FAQ_Generated.docx',
-                       mime='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
 
-    # Screenshot zip
-    zip_buffer.seek(0)
-    st.download_button("Download Screenshots ZIP", data=zip_buffer.read(),
-                       file_name="FAQ_Screenshots.zip",
-                       mime="application/zip")
+    with open(tmp_out.name, 'rb') as doc_file:
+        st.download_button("Download FAQ Document", data=doc_file.read(),
+                           file_name='FAQ_Generated.docx',
+                           mime='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+
+    if screenshot_found:
+        zip_buffer.seek(0)
+        st.download_button("Download Screenshots ZIP", data=zip_buffer.read(),
+                           file_name="FAQ_Screenshots.zip",
+                           mime="application/zip")
 
 # --- GEMINI VALIDATION ---
 if st.button("🧠 Validate Steps (Gemini)"):
