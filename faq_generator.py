@@ -33,9 +33,9 @@ def validate_steps_with_gemini(question, steps):
     prompt = f"""
 You are an expert technical documentation assistant. Review the following steps for the FAQ question: "{question}". 
 
-1️⃣ Highlight if the question is addressed in the steps.  
-2️⃣ Suggest alternatives or missing steps for clarity.  
-3️⃣ Return a cleaned and improved version of the steps.
+1. Highlight if the question is addressed in the steps.  
+2. Suggest alternatives or missing steps for clarity.  
+3. Return a cleaned and improved version of the steps.
 
 Steps:
 {steps}
@@ -51,13 +51,12 @@ if 'faq_list' not in st.session_state or 'faq_row_id' not in st.session_state:
     st.session_state['faq_row_id'] = row_id
 
 # --- UI ---
-st.title("📄 Troubleshooting — FAQ Generator")
+st.title("\U0001F4C4 Troubleshooting — FAQ Generator")
 
 assignees = list(set([faq["assignee"] for faq in st.session_state['faq_list']])) or ["No Assignee"]
-selected_assignee = st.selectbox("👤 Select Assignee", assignees)
+selected_assignee = st.selectbox("\U0001F464 Select Assignee", assignees)
 
 filtered_faqs = [faq for faq in st.session_state['faq_list'] if faq["assignee"] == selected_assignee]
-
 faq_options = [faq["question"] for faq in filtered_faqs] or ["No FAQ"]
 selected_faq = st.selectbox("❓ Select FAQ", faq_options)
 
@@ -104,34 +103,39 @@ notes = st.text_area("Additional Notes")
 # --- GENERATE DOC ---
 if st.button("📄 Generate FAQ Document"):
     doc = Document()
-    doc.add_heading('FAQ Document', level=1)
-    doc.add_heading('Question', level=2)
+    doc.add_heading("FAQ Document", level=1)
+    doc.add_paragraph("[Question]")
     doc.add_paragraph(selected_faq)
-    doc.add_heading('Summary', level=2)
+    doc.add_paragraph("[Summary]")
     doc.add_paragraph(summary)
-    doc.add_heading('Steps', level=2)
+    doc.add_paragraph("[Steps]")
 
-    for idx, step in enumerate(st.session_state['steps']):
-        doc.add_paragraph(f"Step {idx+1}: {step['text']}")
+    for idx, step in enumerate(st.session_state["steps"]):
+        doc.add_paragraph(f"[Step {idx+1}]")
+        doc.add_paragraph(step["text"])
+
         if step["query"]:
-            doc.add_paragraph(f"Query Template: {step['query']}")
+            doc.add_paragraph("[Query Template]")
+            doc.add_paragraph(step["query"])
+
         if step["screenshot"]:
             with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
                 tmpfile.write(step["screenshot"].read())
                 tmpfile.flush()
+                doc.add_paragraph("[Screenshot]")
                 doc.add_picture(tmpfile.name, width=Inches(4))
 
-    doc.add_heading('Additional Notes', level=2)
+    doc.add_paragraph("[Additional Notes]")
     doc.add_paragraph(notes)
 
-    tmp_out = tempfile.NamedTemporaryFile(delete=False, suffix='.docx')
+    tmp_out = tempfile.NamedTemporaryFile(delete=False, suffix=".docx")
     doc.save(tmp_out.name)
     st.download_button("Download FAQ Document", data=open(tmp_out.name, 'rb').read(),
                        file_name='FAQ_Generated.docx',
                        mime='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
 
 # --- GEMINI VALIDATION ---
-if st.button("🤖 Validate Steps (Gemini)"):
+if st.button("🧠 Validate Steps (Gemini)"):
     steps_text = "\n".join([f"Step {idx+1}: {s['text']}" for idx, s in enumerate(st.session_state['steps'])])
     with st.spinner("Validating with Gemini..."):
         validation = validate_steps_with_gemini(selected_faq, steps_text)
