@@ -2,7 +2,8 @@ import streamlit as st
 from docx import Document
 from docx.shared import Inches
 import tempfile
-import json
+import zipfile
+import io
 import os
 import google.generativeai as genai
 from supabase import create_client
@@ -110,20 +111,25 @@ if st.button("📄 Generate FAQ Document"):
     doc.add_paragraph(summary)
     doc.add_paragraph("[Steps]")
 
-    for idx, step in enumerate(st.session_state["steps"]):
-        doc.add_paragraph(f"[Step {idx+1}]")
-        doc.add_paragraph(step["text"])
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        for idx, step in enumerate(st.session_state["steps"]):
+            doc.add_paragraph(f"[Step {idx+1}]")
+            doc.add_paragraph(step["text"])
 
-        if step["query"]:
-            doc.add_paragraph("[Query Template]")
-            doc.add_paragraph(step["query"])
+            if step["query"]:
+                doc.add_paragraph("[Query Template]")
+                doc.add_paragraph(step["query"])
 
-        if step["screenshot"]:
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
-                tmpfile.write(step["screenshot"].read())
-                tmpfile.flush()
-                doc.add_paragraph("[Screenshot]")
-                doc.add_picture(tmpfile.name, width=Inches(4))
+            if step["screenshot"]:
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
+                    tmpfile.write(step["screenshot"].read())
+                    tmpfile.flush()
+                    doc.add_paragraph("[Screenshot]")
+                    doc.add_picture(tmpfile.name, width=Inches(4))
+                    # Add screenshot to zip
+                    zip_filename = f"Step{idx+1}_screenshot.png"
+                    zip_file.write(tmpfile.name, arcname=zip_filename)
 
     doc.add_paragraph("[Additional Notes]")
     doc.add_paragraph(notes)
@@ -133,6 +139,12 @@ if st.button("📄 Generate FAQ Document"):
     st.download_button("Download FAQ Document", data=open(tmp_out.name, 'rb').read(),
                        file_name='FAQ_Generated.docx',
                        mime='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+
+    # Screenshot zip
+    zip_buffer.seek(0)
+    st.download_button("Download Screenshots ZIP", data=zip_buffer.read(),
+                       file_name="FAQ_Screenshots.zip",
+                       mime="application/zip")
 
 # --- GEMINI VALIDATION ---
 if st.button("🧠 Validate Steps (Gemini)"):
